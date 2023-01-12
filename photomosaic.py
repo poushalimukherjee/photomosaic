@@ -24,10 +24,10 @@ class PhotoMosaic():
         self.img = img
         self.imgbase = imgbase
         self.imgbase_ch_avg = []
-        self.img_w = 600
-        self.img_h = 400
-        self.pixel_unit_w = 3
-        self.pixel_unit_h = 2
+        self.img_w = 1200
+        self.img_h = 800
+        self.pixel_unit_w = 10
+        self.pixel_unit_h = 10
         
     def resize_image(self, img, width=200, height=None):        
         if height is None:
@@ -39,6 +39,16 @@ class PhotoMosaic():
             dim = (width, height)
             img_resized = cv2.resize(img, dim)
         return img_resized
+    
+    def resize_input_image(self, img):
+        if ( ( img.shape[:2][0] < self.img_h ) and 
+             ( img.shape[:2][1] < self.img_w ) ) :
+               img_resized = img
+        else:
+            img_resized = self.resize_image(img, width=self.img_w, 
+                                                 height=self.img_h)
+        return img_resized
+        
         
     def raise_value_error(self):
         raise ValueError("Pixel channel value must be in range 0-255")
@@ -49,6 +59,7 @@ class PhotoMosaic():
                 img[:,:,0] = B
             else:
                 self.raise_value_error()
+        return img
     
     def green_shift(self, img, G=None):
         if G is not None:
@@ -56,6 +67,7 @@ class PhotoMosaic():
                 img[:,:,0] = G
             else:
                 self.raise_value_error()
+        return img
     
     def red_shift(self, img, R=255):
         if R is not None:
@@ -63,6 +75,14 @@ class PhotoMosaic():
                 img[:,:,0] = R
             else:
                 self.raise_value_error()
+        return img
+                
+    def bgr_shift(self, img, B=None, G=None, R=None):
+        img = self.blue_shift(img,B)
+        img = self.green_shift(img,G)
+        img = self.blue_shift(img,B)
+        return img
+        
                 
     def measure_channel_error(self, pixela, pixelb):
         channel_err = math.sqrt( sum( 
@@ -105,12 +125,17 @@ class PhotoMosaic():
             if ch_err < min_ch_err:
                 min_ch_err = ch_err
                 img_o = self.imgbase[i]
+        
+        img_o = self.bgr_shift(img_o, B=pixela[0], G=pixela[1], R=pixela[2])
+        
         return img_o
         
     
     def make_mosaic(self, img, imgbase):
         self.process_imgbase(imgbase)
-        img = self.resize_image(img, width=self.img_w, height=self.img_h)
+        
+        img = self.resize_input_image(img)
+        
         h, w = img.shape[:2]
         
         img_cpy = copy.deepcopy(img)
