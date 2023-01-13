@@ -7,7 +7,9 @@ import math
 import numpy as np
 import cv2
 
-PATH_IMGBASE_JPEG = './imagebase-flags-w2560-h1706-jpeg/*.jpg'
+PATH_IMGBASE_FLAGS    = './imagebase-flags-w2560-h1706-jpeg/*.jpg'
+PATH_IMAGEBASE_NATURE = './imagebase-nature-jpeg/*.jpg'
+PATH_IMGBASE_JPEG = PATH_IMGBASE_FLAGS
 IMAGE_BASE = glob.glob(PATH_IMGBASE_JPEG)
 IMAGE_BASE = [ x.replace("\\", '/' ) for x in IMAGE_BASE ]
 
@@ -24,10 +26,10 @@ class PhotoMosaic():
         self.img = img
         self.imgbase = imgbase
         self.imgbase_ch_avg = []
-        self.img_w = 1200
-        self.img_h = 800
-        self.pixel_unit_w = 10
-        self.pixel_unit_h = 10
+        self.img_w = 7200
+        self.img_h = 4800
+        self.pixel_unit_w = 20
+        self.pixel_unit_h = 20
         
     def resize_image(self, img, width=200, height=None):        
         if height is None:
@@ -64,7 +66,7 @@ class PhotoMosaic():
     def green_shift(self, img, G=None):
         if G is not None:
             if G in range(256):
-                img[:,:,0] = G
+                img[:,:,1] = G
             else:
                 self.raise_value_error()
         return img
@@ -72,23 +74,31 @@ class PhotoMosaic():
     def red_shift(self, img, R=255):
         if R is not None:
             if R in range(256):
-                img[:,:,0] = R
+                img[:,:,2] = R
             else:
                 self.raise_value_error()
         return img
                 
-    def bgr_shift(self, img, B=None, G=None, R=None):
-        img = self.blue_shift(img,B)
-        img = self.green_shift(img,G)
-        img = self.blue_shift(img,B)
+    def tint_shift(self, img, channel=None, value=None):
+        match channel:
+            case 'B':
+                img = self.blue_shift(img,B=value)
+            case 'G':
+                img = self.green_shift(img,G=value)
+            case 'R':
+                img = self.red_shift(img,R=balue)
         return img
         
                 
     def measure_channel_error(self, pixela, pixelb):
-        channel_err = math.sqrt( sum( 
-                                [ math.pow( (pixela[ch]-pixelb[ch]), 2 ) 
-                                  for ch in range(3) ] ) / 3.0
-                                )
+        channel_err = math.sqrt( 
+        sum( 
+        [ math.pow( 
+          ( max(pixela[ch],pixelb[ch]) - min(pixela[ch],pixelb[ch])), 2 ) 
+            for ch in range(3) ] 
+        ) / 3.0 )
+        
+        
         return channel_err
     
     def measure_channel_avg(self, img):
@@ -125,9 +135,6 @@ class PhotoMosaic():
             if ch_err < min_ch_err:
                 min_ch_err = ch_err
                 img_o = self.imgbase[i]
-        
-        img_o = self.bgr_shift(img_o, B=pixela[0], G=pixela[1], R=pixela[2])
-        
         return img_o
         
     
